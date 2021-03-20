@@ -1,20 +1,44 @@
 FROM steamcmd/steamcmd:latest
 
 ARG user
-ARG password
 
-RUN dpkg --add-architecture i386
 RUN apt update
-RUN apt install libfreetype6:i386 -y
+# todo: remove sound/graphics from install?
+# libglapi-mesa
+# libgl1-mesa-dri
+# libllvm10?? not needed because we shouldn't compile shaders?
+RUN apt install wine-stable -y
 RUN apt install libfreetype6 -y
 RUN apt install python3 -y
+RUN apt install tmux -y
+RUN apt install vim -y
+RUN dpkg --add-architecture i386
+RUN apt install libfreetype6:i386 -y
 
-RUN steamcmd +@sSteamCmdForcePlatformType linux +login ${user} ${password} "+app_update 1245040" +quit
-RUN steamcmd +@sSteamCmdForcePlatformType windows +login ${user} ${password} "+app_update 526870 --beta experimental" +quit
+# Copy the login details
+COPY config.vdf ./.steam/config/config.vdf
 
-RUN mkdir ~/compatdata
+# steamcmd has a bug where it won't download other branches if the OS is forced!
+# pulled from here
+# https://steamdb.info/app/526870/depots/?branch=experimental
+RUN steamcmd +@sSteamCmdForcePlatformType windows +login ${user} +download_depot 526870 526871 7399828939544997957 +quit
 
-WORKDIR './.steam/steamapps/common/Proton 5.0'
-ENV STEAM_COMPAT_DATA_PATH=/root/compatdata
+# Start the game, get it to populate ini files
+RUN wine start ~/.steam/steamcmd/linux32/steamapps/content/app_526870/depot_526871/FactoryGame.exe -nosteamclient -nullrhi -nosplash -nosound
+RUN sleep 5; pkillwineserver64
 
-ENTRYPOINT [ "./proton", "run", "/root/Steam/steamapps/common/Satisfactory/FactoryGame.exe", "-nosplash", "-nullrhi", "-nosound", "-NoSteamClient" ]
+# Force map load in config (todo: use a magic python script to handle this)
+RUN echo "[/Script/EngineSettings.GameMapsSettings]" >> ~/.wine/drive_c/users/root/Local\ Settings/Application\ Data/FactoryGame/Saved/Config/WindowsNoEditor/Engine.ini
+RUN echo "GameDefaultMap=/Game/FactoryGame/Map/GameLevel01/Persistent_Level" >> ~/.wine/drive_c/users/root/Local\ Settings/Application\ Data/FactoryGame/Saved/Config/WindowsNoEditor/Engine.ini
+RUN echo "LocalMapOptions=?sessionName=ServerSave?Visibility=SV_FriendsOnly?loadgame=ServerSave?listen?bUseIpSockets?name=Host" >> ~/.wine/drive_c/users/root/Local\ Settings/Application\ Data/FactoryGame/Saved/Config/WindowsNoEditor/Engine.ini
+
+# expose the server port
+EXPOSE 7777
+
+# Actually start the server
+RUN wine start ~/.steam/steamcmd/linux32/steamapps/content/app_526870/depot_526871/FactoryGame.exe -nosteamclient -nullrhi -nosplash -nosound
+
+ENTRYPOINT /bin/bash
+
+# download_depot 526870 526871 7399828939544997957	
+# ~/.steam/steamcmd/linux32/steamapps/content/app_526870/depot_526871
