@@ -23,7 +23,6 @@ COPY config.vdf ./.steam/config/config.vdf
 # https://steamdb.info/app/526870/depots/?branch=experimental
 RUN steamcmd +@sSteamCmdForcePlatformType windows +login ${user} +download_depot 526870 526871 7399828939544997957 +quit
 
-
 WORKDIR /root/.steam/steamcmd/linux32/steamapps/content/app_526870/depot_526871/
 # Start the game, get it to populate ini files
 RUN wine start FactoryGame.exe -nosteamclient -nullrhi -nosplash -nosound && sleep 5
@@ -33,14 +32,11 @@ RUN echo "[/Script/EngineSettings.GameMapsSettings]" >> ~/.wine/drive_c/users/ro
 RUN echo "GameDefaultMap=/Game/FactoryGame/Map/GameLevel01/Persistent_Level" >> ~/.wine/drive_c/users/root/Local\ Settings/Application\ Data/FactoryGame/Saved/Config/WindowsNoEditor/Engine.ini
 RUN echo "LocalMapOptions=?sessionName=ServerSave?Visibility=SV_FriendsOnly?loadgame=ServerSave?listen?bUseIpSockets?name=Host" >> ~/.wine/drive_c/users/root/Local\ Settings/Application\ Data/FactoryGame/Saved/Config/WindowsNoEditor/Engine.ini
 
-# expose the server port
-EXPOSE 7777-7827/udp
-
-# Actually start the server
-#RUN wine start FactoryGame.exe -nosteamclient -nullrhi -nosplash -nosound
+RUN apt install lsof -y
 
 ENTRYPOINT wine start FactoryGame.exe -nosteamclient -nullrhi -nosplash -nosound && /bin/bash
 
-# download_depot 526870 526871 7399828939544997957	
-# ~/.steam/steamcmd/linux32/steamapps/content/app_526870/depot_526871
-# vim ~/.wine/drive_c/users/root/Local\ Settings/Application\ Data/FactoryGame/Saved/Logs/FactoryGame.log
+# Sample run command - mount the save folder, expose port 7777
+# docker run --mount type=bind,source=D:\dev\satisfactory-docker\SaveGames,target="/root/.wine/drive_c/users/root/Local Settings/Application Data/FactoryGame/Saved/SaveGames" -it -p7777:7777 test
+# How to view logs
+# vim /root/.wine/drive_c/users/root/Local\ Settings/Application\ Data/FactoryGame/Saved/Logs/FactoryGame.log
