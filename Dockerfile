@@ -1,5 +1,9 @@
 FROM steamcmd/steamcmd:latest
 
+# change this to your timezone
+ENV TZ=Europe/London
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
 RUN apt update
 # todo: remove sound/graphics from install?
 # libglapi-mesa
@@ -21,8 +25,9 @@ COPY config.vdf ./.steam/config/config.vdf
 # https://steamdb.info/app/526870/depots/?branch=experimental
 
 ARG user
+ARG password
 
-RUN steamcmd +@sSteamCmdForcePlatformType windows +login ${user} +download_depot 526870 526871 7399828939544997957 +quit
+RUN steamcmd +@sSteamCmdForcePlatformType windows +login ${user} ${password} +download_depot 526870 526871 7399828939544997957 +quit
 
 WORKDIR /root/.steam/steamcmd/linux32/steamapps/content/app_526870/depot_526871/
 # Start the game, get it to populate ini files
